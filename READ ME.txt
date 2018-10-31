@@ -1,0 +1,23 @@
+langkah penggunaan
+1. langkah awal export dahulu file excel untuk rubah format agar terbaca di sistem
+contoh : https://www.zamzar.com/convert/xls-to-xlsx/
+2. kemudian masukan file ke dalam folder file
+3. jalan kan aplikasi running.bat
+4. masukan file nama yang di tempatkan pada folder file
+5. lanjutkan proses dengan masukan y atau Y untuk melanjutkan
+6. data sudah terkirim
+
+directory file :
+1. file : lokasi untuk data yang akan di proses yang terlebih dahulu export agar di baca sistem
+2. config : lokasi untuk seting url, username, dan password pada GTASS yang di gunakan
+3. file_ext : lokasi backup file apabila file sudah di proses
+4. interface : lokasi untuk simpan client zend
+5. library : lokasi untuk library php yang di gunakan (zend dan phpexcel)
+6. log : lokasi proses yang terjadi saat running (error log, success log, phpexcel log, gtass log)
+7. model : lokasi untuk model yang di gunakan
+8. php-5.5.38 : php exe
+
+perhatian :
+1. apabila terjadi kegagalan mohon di cek kembali pada error log dalam folder log
+2. perhatikan pada file excel yang di gunakan jika file sesuai baru proses lanjut
+3. perhatikan untuk memasukan akun kode untuk di arahkan kemana hasil dari data yang di proses
