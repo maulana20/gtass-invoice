@@ -305,7 +305,7 @@ if (file_exists('file/' . $file_name)) {
 					$data['fare']['basic'] = $v['Basic'];
 					$data['fare']['tax'] = $v['Tax'];
 					$data['fare']['total'] = $v['Publish'];
-					$data['fare']['real_nta'] = ($konsorsium_choice == 2) ? $v['Real NTA'] : $v['Publish'];
+					$data['fare']['real_nta'] = ( in_array($konsorsium_choice, array(2)) ) ? $v['Real NTA'] : $v['Publish'];
 					
 					$remark1 = $data['booking_code'] . ' ' . $konsorsium_name . ' ' . $data['ticket_number'];
 					$remark1 = substr($remark1, 0, 100);
