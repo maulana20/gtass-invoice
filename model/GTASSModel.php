@@ -397,7 +397,7 @@ class GTASSModel extends HostToHostIOModel
 		$data['nta'] = $res['fare']['real_nta']; // 111000-5000
 		$data['agentCom'] = $data['publish'] - $data['nta'];
 		$data['bsp'] = $data['disc'] = $data['discP'] = $data['extraDisc'] = $data['extraDiscP'] = $data['fs'] =  $data['incentive'] = $data['insurance'] = $data['issueFee'] = $data['agentComP'] = $data['airportTax'] = $data['ppn'] = $data['ppnP'] = $data['profit'] = $data['serFee'] = 0;
-		if ($konsorsium_choice == 3) $data['disc'] = $data['publish'] - $data['nta']; // only citilink
+		if ( in_array($konsorsium_choice, array(1,4,5,6,7)) ) $data['disc'] = $data['publish'] - $data['nta']; // lawan komisi
 		$data['allowEditPurchase'] = $data['allowEditSales'] = $data['allowShowSales'] = true;
 		$data['threeCode'] = $res['ticket_three_code']; // 990 => Lion, 
 		$data['tickNo'] = $res['ticket_number']; // by ticket

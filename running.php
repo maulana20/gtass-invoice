@@ -305,7 +305,9 @@ if (file_exists('file/' . $file_name)) {
 					$data['fare']['basic'] = $v['Basic'];
 					$data['fare']['tax'] = $v['Tax'];
 					$data['fare']['total'] = $v['Publish'];
-					$data['fare']['real_nta'] = ( in_array($konsorsium_choice, array(2)) ) ? $v['Real NTA'] : $v['Publish'];
+					// jika ada real_nta = Real NTA maka dapat komisi di GTASS
+					$data['fare']['real_nta'] = ( in_array($konsorsium_choice, array(1,4,5,6,7)) ) ? $v['Real NTA'] : $v['Publish'];
+					if ($konsorsium_choice == 1) $data['fare']['real_nta'] -= 2000; // UP 2,000 di ambil sama versatech 
 					
 					$remark1 = $data['booking_code'] . ' ' . $konsorsium_name . ' ' . $data['ticket_number'];
 					$remark1 = substr($remark1, 0, 100);
