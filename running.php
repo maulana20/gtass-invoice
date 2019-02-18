@@ -18,7 +18,7 @@ function moveFile($file_name, $ext)
 
 function getKonsorsiumName($index)
 {
-	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'KAI', 9 => 'HOTEL', 10 => 'PELNI', 11 => 'BUS');
+	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'GARUDAALTEA');
 	return $konsorsium_list[$index];
 }
 
@@ -33,6 +33,7 @@ echo "* 4. GARUDA API                      *" . "\n";
 echo "* 5. XPRESS                          *" . "\n";
 echo "* 6. TRANSNUSA                       *" . "\n";
 echo "* 7. TRIGANA                         *" . "\n";
+echo "* 8. GARUDA ALTEA (SUPPLIER)         *" . "\n";
 echo "**************************************" . "\n";
 echo "> ";
 $handle = fopen ("php://stdin","r");
@@ -42,7 +43,7 @@ if (empty($konsorsium_choice)) {
 	logRes('log/gtass_log.txt', "Konsorsium harus di pilih tidak boleh kosong !");
 	exit();
 }
-if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7)) ) {
+if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7,8)) ) {
 	echo "result : Konsorsium yang di pilih tidak ada !";
 	logRes('log/gtass_log.txt', "Bank yang di pilih tidak ada !");
 	exit();
@@ -137,6 +138,7 @@ if (file_exists('file/' . $file_name)) {
 		if ( in_array($cmd, array('y', 'Y')) ) {
 			
 			// MASUKAN KODE COA UNTUK BISA DI OLAH DI ARAHKAN KEMANA
+			$customer_code = $supplier_code = '';
 			echo "> Masukan Code Customer (AGENT VERSA OR MITRA)" . "\n";
 			echo "> ";
 			$handle = fopen ("php://stdin","r");
@@ -151,6 +153,24 @@ if (file_exists('file/' . $file_name)) {
 				logRes('log/gtass_log.txt', "Code Customer harus sesuai (8 karakter) !");
 				break;
 			}
+			// MASUKAN CODE SUPPLIER APABILA ALTEA
+			if ( in_array($konsorsium_choice, array(8)) ) {
+				// GARUDAALTEA
+				echo "> Masukan Code Supplier" . "\n";
+				echo "> ";
+				$handle = fopen ("php://stdin","r");
+				$supplier_code = trim(fgets($handle));
+				if (empty($supplier_code)) {
+					echo "result : Code Supplier kosong !";
+					logRes('log/gtass_log.txt', "Kode akun kosong !");
+					break;
+				}
+				if (strlen($supplier_code) != 6) {
+					echo "result : Code Supplier harus sesuai (8 karakter) !";
+					logRes('log/gtass_log.txt', "Code Supplier harus sesuai (8 karakter) !");
+					break;
+				}
+			}
 			
 			// KIRIM DATA KE GTASS MULAI
 			$gtass = new GTASSModel();
@@ -164,6 +184,18 @@ if (file_exists('file/' . $file_name)) {
 				logRes('log/gtass_log.txt', "Code Customer tidak ada !");
 				$gtass->logoutClient();
 				break;
+			}
+			
+			// CEK CODE SUPPLIER JIKA ALTEA
+			$supplier_data = array();
+			if ( in_array($konsorsium_choice, array(8)) ) {
+				$supplier_data = $gtass->getSupplierData($supplier_code);
+				if (empty($supplier_data) || empty($supplier_data['code'])) {
+					echo "result : Code Supllier tidak ada !";
+					logRes('log/gtass_log.txt', "Code Supllier tidak ada !");
+					$gtass->logoutClient();
+					break;
+				}
 			}
 			
 			foreach ($list as $k => $v) {
@@ -226,6 +258,13 @@ if (file_exists('file/' . $file_name)) {
 					} else {
 						$valid = true;
 					}
+				} else if ($konsorsium_choice == 8) { // Garuda Altea
+					if ($v['Airline'] != 'Garuda Altea') {
+						$result = implode('|', $record) . "(" . $konsorsium_name . ") Must Garuda Altea in column airline" . "\r\n";
+						sleep(5);
+					} else {
+						$valid = true;
+					}
 				}
 				
 				// SIMPAN DATA
@@ -262,6 +301,9 @@ if (file_exists('file/' . $file_name)) {
 					} else if ($konsorsium_choice == 7) {
 						$air_code = 'A00010'; // Trigana Air
 						$ticket_three_code = '000'; // Trigana Air
+					} else if ($konsorsium_choice == 8) {
+						$air_code = 'A00015'; // Garuda Altea
+						$ticket_three_code = '126'; // Garuda Altea
 					}
 					
 					$route_list = explode('-', $v['Route']);
@@ -291,6 +333,7 @@ if (file_exists('file/' . $file_name)) {
 					$ticket_number = substr($ticket_number, 0, 11);
 					if ( empty($ticket_number) || strtolower($ticket_number) == 'confirm' ) $ticket_number = $data['booking_code'];
 					$data['ticket_number'] = $ticket_number;
+					if (!empty($supplier_code)) $data['supplier_data'] = $supplier_data;
 					
 					// INCLUDE TICKET SCHEDULE
 					$data['schedule']['time_depart'] = $time_depart;

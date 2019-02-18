@@ -321,7 +321,13 @@ class GTASSModel extends HostToHostIOModel
 		$data['oneWay'] = $res['oneway']; // choice 1 => oneway
 		$data['referral'] = 'ticket-trans'; // MANDATORY
 		$data['tourCode'] = NULL;
+		// DEFAULT DP = DEPOSIT
 		$data['type'] = 'DP';
+		if ( in_array($konsorsium_choice, array(8)) ) {
+			$data['type'] = 'LG'; // ONLY LG (ALTEA)
+			$data['supCode'] = $res['supplier_data']['code'];
+			$data['supName'] = $res['supplier_data']['name'];
+		}
 		$json = json_encode($data);
 		$client->setUri($host . '/api/ticket-trans/update?act=add');
 		$client->setRawData($json, 'application/json');
@@ -871,6 +877,29 @@ class GTASSModel extends HostToHostIOModel
 		$res_json = json_decode($result, true);
 		
 		$this->logResponse("log/GTASSCustomerData.html", $response);
+		
+		return $res_json['data'][0];
+	}
+	
+	function getSupplierData($supllier_code)
+	{
+		$client = &$this->client;
+		$host = $this->url;
+		
+		$client->resetParameters();
+		$data = array();
+		$data['search'] = $supllier_code;
+		$data['take'] = 50;
+		$data['skip'] = 0;
+		$data['page'] = 1;
+		$data['pageSize'] = 1000;
+		$client->setUri($host . '/api/supplier/list');
+		$client->setParameterPost($data);
+		$response = $client->request(Zend_Http_Client::POST);
+		$result = $response->getBody();
+		$res_json = json_decode($result, true);
+		
+		$this->logResponse("log/GTASSupplierData.html", $response);
 		
 		return $res_json['data'][0];
 	}
