@@ -483,7 +483,7 @@ class GTASSModel extends HostToHostIOModel
 		$data['oneWay'] = $res['oneway']; // choice 1 => oneway
 		$data['referral'] = 'tickettrain-trans'; // MANDATORY
 		$data['tourCode'] = NULL;
-		$data['type'] = 'LG'; // ONLY LG (ALTEA)
+		$data['type'] = 'DS'; // ONLY LG (ALTEA)
 		$data['supCode'] = $res['supplier_data']['code'];
 		$data['supName'] = $res['supplier_data']['name'];
 		
@@ -595,7 +595,7 @@ class GTASSModel extends HostToHostIOModel
 		$this->logResponse("log/GTASSReservationTicketTrainPrice.html", $response);
 	}
 	
-	function addInvoice($res, $customer_data, $remark1)
+	function addInvoice($res, $customer_data, $remark1, $konsorsium_choice)
 	{
 		// Meliputi menu : Operation - Input - Invoice - General
 		// 1. Masukan invoice (pendataan)
@@ -643,6 +643,7 @@ class GTASSModel extends HostToHostIOModel
 		$data['locationId'] = 1; // PUSAT
 		$data['paxPaid'] = $data['pph23'] = $data['ppn'] = 0; // MANDATORY
 		$data['prodCode'] = 'TICKD'; // MANDATORY
+		if ($konsorsium_choice == 9) $data['prodCode'] = 'KAI';
 		$data['rate'] = 1; // MANDATORY
 		$data['referral'] = 'invoice'; // MANDATORY
 		$data['remark1'] = $remark1; // DESKRIPSI
@@ -684,6 +685,7 @@ class GTASSModel extends HostToHostIOModel
 		$data = array();
 		$data['curr'] = 'IDR';
 		$data['prodType'] = 'TICKD';
+		if ($konsorsium_choice == 9) $data['prodType'] = 'KAI';
 		$data['searchBy'] = 'pnr';
 		$data['search'] = $res['booking_code'];
 		$client->setUri($host . '/api/ticket-trans/uninv-lists');

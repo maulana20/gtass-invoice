@@ -267,8 +267,8 @@ if (file_exists('file/' . $file_name)) {
 						$valid = true;
 					}
 				} else if ($konsorsium_choice == 9) { // KAI
-					if ($v['Airline'] != 'KAI') {
-						$result = implode('|', $record) . "(" . $konsorsium_name . ") Must KAI in column airline" . "\r\n";
+					if ($v['Airline'] != 'KAWisata') {
+						$result = implode('|', $record) . "(" . $konsorsium_name . ") Must KAWisata in column airline" . "\r\n";
 						sleep(5);
 					} else {
 						$valid = true;
@@ -401,7 +401,7 @@ if (file_exists('file/' . $file_name)) {
 							
 							// BUAT INVOICE JIKA SUDAH PROSES MAKA RETURN CONFIRM AKHIR TRUE
 							$confirm_invoice = false;
-							$confirm_invoice = $gtass->addInvoice($data, $customer_data, $remark1);
+							$confirm_invoice = $gtass->addInvoice($data, $customer_data, $remark1, $konsorsium_choice);
 							
 							$result = implode('|', $record) . (($confirm_invoice == true) ? " Done" : " Not Proccess") . "\r\n";
 							sleep(10);
