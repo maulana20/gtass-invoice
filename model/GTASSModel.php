@@ -595,6 +595,163 @@ class GTASSModel extends HostToHostIOModel
 		$this->logResponse("log/GTASSReservationTicketTrainPrice.html", $response);
 	}
 	
+	function addReservationTicketShip($res)
+	{
+		$client = &$this->client;
+		$host = $this->url;
+		
+		$client->resetParameters();
+		$data = array();
+		$data['search'] = '';
+		$data['take'] = 50;
+		$data['skip'] = 0;
+		$data['page'] = 1;
+		$data['pageSize'] = 50;
+		$client->setUri($host . '/api/ticketship-trans/list');
+		$client->setParameterPost($data);
+		
+		try {
+			$response = $client->request(Zend_Http_Client::POST);
+			$result = $response->getBody();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+			logRes("log/gtass_error.txt", 'open menu ticket ' . $e->getMessage());
+			exit();
+		}
+		
+		$this->logResponse("log/GTASSReservationTicketShipList.html", $response);
+		
+		// DONE
+		$client->resetParameters();
+		$data = array();
+		$data['act'] = 'add';
+		$data['adtQty'] = $res['qty'];
+		$data['airCode'] = $res['air_code']; // A00013 => Lion 2, 
+		$data['bookBy'] = 'M0003'; // PUTUT
+		$data['bookCode'] = $res['booking_code'];
+		$data['bookDate'] = date('Y-m-d', $res['booking_date']); // 2018-08-20
+		$data['chdQty'] = 0;
+		$data['currCode'] = 'IDR';
+		$data['dom'] = $res['is_domestic']; // dom : domestic
+		$data['infQty'] = 0;
+		$data['issuedBy'] = 'M0003'; // PUTUT
+		$data['issuedDate'] = date('Y-m-d', $res['issued_date']);
+		$data['locationId'] = 1; // pusat
+		$data['oneWay'] = $res['oneway']; // choice 1 => oneway
+		$data['referral'] = 'ticketship-trans'; // MANDATORY
+		$data['tourCode'] = NULL;
+		$data['type'] = 'DS'; // ONLY LG (ALTEA)
+		$data['supCode'] = $res['supplier_data']['code'];
+		$data['supName'] = $res['supplier_data']['name'];
+		
+		$json = json_encode($data);
+		$client->setUri($host . '/api/ticketship-trans/update?act=add');
+		$client->setRawData($json, 'application/json');
+		
+		try {
+			$response = $client->request('POST');
+			$result = $response->getBody();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+			logRes("log/gtass_error.txt", $e->getMessage());
+			exit();
+		}
+		
+		$res_json = json_decode($result, true);
+		if ($res_json['success'] != true) {
+			logRes("log/gtass_error.txt", 'input tiket ' . $res_json['message']);
+		} else {
+			logRes("log/gtass_success.txt", 'input tiket ' . $res_json['message']);
+		}
+		
+		$this->logResponse("log/GTASSReservationTicketShipAdd.html", $response);
+		
+		$res_json = json_decode($result, true);
+		$ticket_code = $res_json['data']['id'];
+		
+		// DONE
+		$client->resetParameters();
+		$data = array();
+		$data['act'] = 'add';
+		$data['depAirport'] = $res['schedule']['city_depart']; // CGK
+		$data['arrAirport'] = $res['schedule']['city_arrive']; // BGR
+		$data['depTime'] = date('H:i', $res['schedule']['time_depart']); // 12:00
+		$data['arrTime'] = date('H:i', $res['schedule']['time_arrive']); // 13:00
+		$data['classCode'] = $res['schedule']['class_code']; // X
+		$data['classType'] = $res['schedule']['class_type']; // nb E : Economy, B : Bisnis, F : First Class
+		$data['flightDate'] = date('Y-m-d', $res['schedule']['time_depart']); // 2018-08-20
+		$data['flightNo'] = $res['schedule']['flight_code']; // JT XXX
+		$data['id'] = $ticket_code; // 307 : id by return add ticket
+		$data['idc'] = $ticket_code; // 307 : id by return add ticket
+		$data['locId'] = 1; // PUSAT
+		$data['referral'] = 'ticketship-trans'; // MANDATORY
+		$json = json_encode($data);
+		$client->setUri($host . '/api/ticketship-trans/updateroute?act=add');
+		$client->setRawData($json, 'application/json');
+		
+		try {
+			$response = $client->request('POST');
+			$result = $response->getBody();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+			logRes("log/gtass_error.txt", $e->getMessage());
+			exit();
+		}
+		
+		$res_json = json_decode($result, true);
+		if ($res_json['success'] != true) {
+			logRes("log/gtass_error.txt", 'input schedule ' . $res_json['message']);
+		} else {
+			logRes("log/gtass_success.txt", 'input schedule ' . $res_json['message']);
+		}
+		
+		$this->logResponse("log/GTASSReservationTicketShipSchedule.html", $response);
+		
+		// DONE
+		$client->resetParameters();
+		$data = array();
+		$data['act'] = 'add';
+		$data['id'] = $ticket_code;
+		$data['basicFare'] = $res['fare']['basic'];
+		$data['iwjr'] = $res['fare']['tax'];
+		$data['publish'] = $res['fare']['total'];
+		$data['nta'] = $res['fare']['real_nta']; // 111000-5000
+		$data['agentCom'] = $data['publish'] - $data['nta'];
+		$data['bsp'] = $data['disc'] = $data['discP'] = $data['extraDisc'] = $data['extraDiscP'] = $data['fs'] =  $data['incentive'] = $data['insurance'] = $data['issueFee'] = $data['agentComP'] = $data['airportTax'] = $data['ppn'] = $data['ppnP'] = $data['profit'] = $data['serFee'] = 0;
+		$data['allowEditPurchase'] = $data['allowEditSales'] = $data['allowShowSales'] = true;
+		$data['threeCode'] = $res['ticket_three_code']; // 990 => Lion, 
+		$data['tickNo'] = $res['ticket_number']; // by ticket
+		$data['title'] = $res['contact_title']; // by contact
+		$data['firstName'] = $res['contact_name']; // by contact
+		$data['lastName'] = NULL;
+		$data['locId'] = 1;
+		$data['partTickNo'] = $res['ticket_number'];
+		$data['paxType'] = 'A';
+		$data['referral'] = 'tickettrain-trans';
+		$data['tourCode'] = NULL;
+		$json = json_encode($data);
+		$client->setUri($host . '/api/ticketship-trans/updatedetail?act=add');
+		$client->setRawData($json, 'application/json');
+		
+		try {
+			$response = $client->request('POST');
+			$result = $response->getBody();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+			logRes("log/gtass_error.txt", $e->getMessage());
+			exit();
+		}
+		
+		$res_json = json_decode($result, true);
+		if ($res_json['success'] != true) {
+			logRes("log/gtass_error.txt", 'input fare ' . $res_json['message']);
+		} else {
+			logRes("log/gtass_success.txt", 'input fare ' . $res_json['message']);
+		}
+		
+		$this->logResponse("log/GTASSReservationTicketShipPrice.html", $response);
+	}
+	
 	function addInvoice($res, $customer_data, $remark1, $konsorsium_choice)
 	{
 		// Meliputi menu : Operation - Input - Invoice - General
@@ -644,6 +801,7 @@ class GTASSModel extends HostToHostIOModel
 		$data['paxPaid'] = $data['pph23'] = $data['ppn'] = 0; // MANDATORY
 		$data['prodCode'] = 'TICKD'; // MANDATORY
 		if ($konsorsium_choice == 9) $data['prodCode'] = 'KAI';
+		if ($konsorsium_choice == 10) $data['prodCode'] = 'PLN';
 		$data['rate'] = 1; // MANDATORY
 		$data['referral'] = 'invoice'; // MANDATORY
 		$data['remark1'] = $remark1; // DESKRIPSI
@@ -686,6 +844,7 @@ class GTASSModel extends HostToHostIOModel
 		$data['curr'] = 'IDR';
 		$data['prodType'] = 'TICKD';
 		if ($konsorsium_choice == 9) $data['prodType'] = 'KAI';
+		if ($konsorsium_choice == 10) $data['prodType'] = 'PLN';
 		$data['searchBy'] = 'pnr';
 		$data['search'] = $res['booking_code'];
 		$client->setUri($host . '/api/ticket-trans/uninv-lists');
@@ -815,6 +974,8 @@ class GTASSModel extends HostToHostIOModel
 		$data['pph23Code'] = $data['pph23IsInclude'] = $data['pph23Rate'] = $data['pph23Source'] = $data['ppnCode'] = $data['ppnIsInclude'] = $data['ppnRate'] = $data['ppnSource'] = NULL;
 		$data['ppn'] = 0;
 		$data['prodCode'] = 'TICKD';
+		if ($konsorsium_choice == 9) $data['prodCode'] = 'KAI';
+		if ($konsorsium_choice == 10) $data['prodCode'] = 'PLN';
 		$data['prodCodeSrc'] = 'TICK';
 		$data['rate'] = 1;
 		$data['referral'] = 'invoice';
@@ -1182,6 +1343,41 @@ class GTASSModel extends HostToHostIOModel
 		}
 		
 		$this->logResponse("log/GTASSReservationTicketTrainList.html", $response);
+		
+		$res_json = json_decode($result, true);
+		foreach ($res_json['data'] as $k => $v) {
+			if ($v['bookCode'] == $booking_code) return true;
+		}
+		
+		return false;
+	}
+	
+	function isAlreadyResTicketShip($date, $booking_code)
+	{
+		$client = &$this->client;
+		$host = $this->url;
+		
+		$client->resetParameters();
+		$data = array();
+		$data['search'] = date('d M Y', $date); // BY DATE 21 Aug 2018
+		$data['take'] = 10;
+		$data['skip'] = 0;
+		$data['page'] = 1;
+		$data['pageSize'] = 1000;
+		$data['voidStatus'] = false;
+		$client->setUri($host . '/api/ticketship-trans/list');
+		$client->setParameterPost($data);
+		
+		try {
+			$response = $client->request(Zend_Http_Client::POST);
+			$result = $response->getBody();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+			logRes("log/gtass_error.txt", 'ticket list ' . $e->getMessage());
+			exit();
+		}
+		
+		$this->logResponse("log/GTASSReservationTicketShipList.html", $response);
 		
 		$res_json = json_decode($result, true);
 		foreach ($res_json['data'] as $k => $v) {

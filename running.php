@@ -18,7 +18,7 @@ function moveFile($file_name, $ext)
 
 function getKonsorsiumName($index)
 {
-	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'GARUDAALTEA', 9 => 'KAI');
+	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'GARUDAALTEA', 9 => 'KAI', 10 => 'PELNI');
 	return $konsorsium_list[$index];
 }
 
@@ -35,6 +35,7 @@ echo "* 6. TRANSNUSA                       *" . "\n";
 echo "* 7. TRIGANA                         *" . "\n";
 echo "* 8. GARUDA ALTEA (SUPPLIER)         *" . "\n";
 echo "* 9. KAI (SUPPLIER)                  *" . "\n";
+echo "*10. PELNI (SUPPLIER)                *" . "\n";
 echo "**************************************" . "\n";
 echo "> ";
 $handle = fopen ("php://stdin","r");
@@ -44,7 +45,7 @@ if (empty($konsorsium_choice)) {
 	logRes('log/gtass_log.txt', "Konsorsium harus di pilih tidak boleh kosong !");
 	exit();
 }
-if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7,8,9)) ) {
+if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7,8,9,10)) ) {
 	echo "result : Konsorsium yang di pilih tidak ada !";
 	logRes('log/gtass_log.txt', "Bank yang di pilih tidak ada !");
 	exit();
@@ -155,7 +156,7 @@ if (file_exists('file/' . $file_name)) {
 				break;
 			}
 			// MASUKAN CODE SUPPLIER APABILA ALTEA
-			if ( in_array($konsorsium_choice, array(8,9)) ) {
+			if ( in_array($konsorsium_choice, array(8,9,10)) ) {
 				// GARUDAALTEA
 				echo "> Masukan Code Supplier" . "\n";
 				echo "> ";
@@ -189,7 +190,7 @@ if (file_exists('file/' . $file_name)) {
 			
 			// CEK CODE SUPPLIER JIKA ALTEA
 			$supplier_data = array();
-			if ( in_array($konsorsium_choice, array(8,9)) ) {
+			if ( in_array($konsorsium_choice, array(8,9,10)) ) {
 				$supplier_data = $gtass->getSupplierData($supplier_code);
 				if (empty($supplier_data) || empty($supplier_data['code'])) {
 					echo "result : Code Supllier tidak ada !";
@@ -273,6 +274,13 @@ if (file_exists('file/' . $file_name)) {
 					} else {
 						$valid = true;
 					}
+				} else if ($konsorsium_choice == 10) { // Pelni
+					if ($v['Airline'] != 'Pelni') {
+						$result = implode('|', $record) . "(" . $konsorsium_name . ") Must Pelni in column airline" . "\r\n";
+						sleep(5);
+					} else {
+						$valid = true;
+					}
 				}
 				
 				// SIMPAN DATA
@@ -315,6 +323,9 @@ if (file_exists('file/' . $file_name)) {
 					} else if ($konsorsium_choice == 9) {
 						$air_code = 'A00019'; // KAI
 						$ticket_three_code = '000'; // KAI
+					} else if ($konsorsium_choice == 10) {
+						$air_code = 'A00020'; // Pelni
+						$ticket_three_code = '000'; // Pelni
 					}
 					
 					$route_list = explode('-', $v['Route']);
@@ -329,7 +340,9 @@ if (file_exists('file/' . $file_name)) {
 					$data = array();
 					
 					// CREATE TICKET
-					$data['booking_code'] = substr($v['Booking Code'], 0, 7);
+					$booking_code = $v['Booking Code'];
+					if ($konsorsium_choice == 9) $booking_code = str_replace('VERSA', '', $booking_code);
+					$data['booking_code'] = substr($booking_code, 0, 7);
 					$data['booking_date'] = strtotime($v['Booking Date']);
 					$data['issued_date'] = strtotime($v['Date']);
 					$data['oneway'] = 1;
@@ -343,6 +356,7 @@ if (file_exists('file/' . $file_name)) {
 					$ticket_number = ltrim($v['Ticket Number'], $ticket_three_code);
 					$ticket_number = substr($ticket_number, 0, 11);
 					if ( empty($ticket_number) || strtolower($ticket_number) == 'confirm' ) $ticket_number = $data['booking_code'];
+					if ($konsorsium_choice == 10) $ticket_number = $data['booking_code'];
 					$data['ticket_number'] = $ticket_number;
 					if (!empty($supplier_code)) $data['supplier_data'] = $supplier_data;
 					
@@ -360,7 +374,7 @@ if (file_exists('file/' . $file_name)) {
 					$data['fare']['tax'] = $v['Tax'];
 					$data['fare']['total'] = $v['Publish'];
 					// jika ada real_nta = Real NTA maka dapat komisi di GTASS
-					$data['fare']['real_nta'] = ( in_array($konsorsium_choice, array(1,4,5,6,7)) ) ? $v['Real NTA'] : $v['Publish'];
+					$data['fare']['real_nta'] = ( in_array($konsorsium_choice, array(1,4,5,6,7,9)) ) ? $v['Real NTA'] : $v['Publish'];
 					if ($konsorsium_choice == 1) $data['fare']['real_nta'] -= 2000; // UP 2,000 di ambil sama versatech 
 					
 					$remark1 = $data['booking_code'] . ' ' . $konsorsium_name . ' ' . $data['ticket_number'];
@@ -384,6 +398,8 @@ if (file_exists('file/' . $file_name)) {
 						$is_already_tiket = true;
 						if ($konsorsium_choice == 9) { // KAI
 							$is_already_tiket = $gtass->isAlreadyResTicketTrain($data['issued_date'], $data['booking_code']);
+						} else if ($konsorsium_choice == 10) { // Pelni
+							$is_already_tiket = $gtass->isAlreadyResTicketShip($data['issued_date'], $data['booking_code']);
 						} else {
 							$is_already_tiket = $gtass->isAlreadyResTicket($data['issued_date'], $data['booking_code']); // BY DATE SEARCH BY KODE BOOKING
 						}
@@ -395,6 +411,8 @@ if (file_exists('file/' . $file_name)) {
 							// ADD TICKET
 							if ($konsorsium_choice == 9) { // KAI
 								$gtass->addReservationTicketTrain($data);
+							} else if ($konsorsium_choice == 10) {
+								$gtass->addReservationTicketShip($data);
 							} else {
 								$gtass->addReservationTicket($data, $konsorsium_choice);
 							}
