@@ -18,7 +18,7 @@ function moveFile($file_name, $ext)
 
 function getKonsorsiumName($index)
 {
-	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'GARUDAALTEA');
+	$konsorsium_list = array(1 => 'LION', 2 => 'SRIWIJAYA', 3 => 'CITILINK', 4 => 'GARUDAAPI', 5 => 'XPRESS', 6 => 'TRANSNUSA', 7 => 'TRIGANA', 8 => 'GARUDAALTEA', 9 => 'KAI');
 	return $konsorsium_list[$index];
 }
 
@@ -34,6 +34,7 @@ echo "* 5. XPRESS                          *" . "\n";
 echo "* 6. TRANSNUSA                       *" . "\n";
 echo "* 7. TRIGANA                         *" . "\n";
 echo "* 8. GARUDA ALTEA (SUPPLIER)         *" . "\n";
+echo "* 9. KAI (SUPPLIER)                  *" . "\n";
 echo "**************************************" . "\n";
 echo "> ";
 $handle = fopen ("php://stdin","r");
@@ -43,7 +44,7 @@ if (empty($konsorsium_choice)) {
 	logRes('log/gtass_log.txt', "Konsorsium harus di pilih tidak boleh kosong !");
 	exit();
 }
-if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7,8)) ) {
+if (! in_array($konsorsium_choice, array(1,2,3,4,5,6,7,8,9)) ) {
 	echo "result : Konsorsium yang di pilih tidak ada !";
 	logRes('log/gtass_log.txt', "Bank yang di pilih tidak ada !");
 	exit();
@@ -154,7 +155,7 @@ if (file_exists('file/' . $file_name)) {
 				break;
 			}
 			// MASUKAN CODE SUPPLIER APABILA ALTEA
-			if ( in_array($konsorsium_choice, array(8)) ) {
+			if ( in_array($konsorsium_choice, array(8,9)) ) {
 				// GARUDAALTEA
 				echo "> Masukan Code Supplier" . "\n";
 				echo "> ";
@@ -188,7 +189,7 @@ if (file_exists('file/' . $file_name)) {
 			
 			// CEK CODE SUPPLIER JIKA ALTEA
 			$supplier_data = array();
-			if ( in_array($konsorsium_choice, array(8)) ) {
+			if ( in_array($konsorsium_choice, array(8,9)) ) {
 				$supplier_data = $gtass->getSupplierData($supplier_code);
 				if (empty($supplier_data) || empty($supplier_data['code'])) {
 					echo "result : Code Supllier tidak ada !";
@@ -265,6 +266,13 @@ if (file_exists('file/' . $file_name)) {
 					} else {
 						$valid = true;
 					}
+				} else if ($konsorsium_choice == 9) { // KAI
+					if ($v['Airline'] != 'KAI') {
+						$result = implode('|', $record) . "(" . $konsorsium_name . ") Must KAI in column airline" . "\r\n";
+						sleep(5);
+					} else {
+						$valid = true;
+					}
 				}
 				
 				// SIMPAN DATA
@@ -304,6 +312,9 @@ if (file_exists('file/' . $file_name)) {
 					} else if ($konsorsium_choice == 8) {
 						$air_code = 'A00015'; // Garuda Altea
 						$ticket_three_code = '126'; // Garuda Altea
+					} else if ($konsorsium_choice == 9) {
+						$air_code = 'A00019'; // KAI
+						$ticket_three_code = '000'; // KAI
 					}
 					
 					$route_list = explode('-', $v['Route']);
@@ -371,13 +382,22 @@ if (file_exists('file/' . $file_name)) {
 					} else {
 						// CHECK SUDAH ADA TICKET SEBELUMNYA
 						$is_already_tiket = true;
-						$is_already_tiket = $gtass->isAlreadyResTicket($data['issued_date'], $data['booking_code']); // BY DATE SEARCH BY KODE BOOKING
+						if ($konsorsium_choice == 9) { // KAI
+							$is_already_tiket = $gtass->isAlreadyResTicketTrain($data['issued_date'], $data['booking_code']);
+						} else {
+							$is_already_tiket = $gtass->isAlreadyResTicket($data['issued_date'], $data['booking_code']); // BY DATE SEARCH BY KODE BOOKING
+						}
+						
 						if ($is_already_tiket) {
 							$result = implode('|', $record) . " Is Already Ticket" . "\r\n";
 							sleep(5);
 						} else {
 							// ADD TICKET
-							$gtass->addReservationTicket($data, $konsorsium_choice);
+							if ($konsorsium_choice == 9) { // KAI
+								$gtass->addReservationTicketTrain($data);
+							} else {
+								$gtass->addReservationTicket($data, $konsorsium_choice);
+							}
 							
 							// BUAT INVOICE JIKA SUDAH PROSES MAKA RETURN CONFIRM AKHIR TRUE
 							$confirm_invoice = false;
