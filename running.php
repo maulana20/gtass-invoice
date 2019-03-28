@@ -96,7 +96,8 @@ if (file_exists('file/' . $file_name)) {
 		logRes('log/gtass_log.txt', "(" . $konsorsium_name . ") Format tidak mendukung !");
 		exit();
 	}
-	if ($title_list[1] != 'Date' || $title_list[4] != 'Booking Code' || $title_list[15] != 'Ticket Number') {
+	$title_ticket_number = ($konsorsium_choice == 10) ? 'NUM Code' : 'Ticket Number';
+	if ($title_list[1] != 'Date' || $title_list[4] != 'Booking Code' || $title_list[15] != $title_ticket_number) {
 		echo "result : Format title tidak mendukung !";
 		logRes('log/gtass_log.txt', "Format title tidak mendukung !");
 		exit();
@@ -331,8 +332,15 @@ if (file_exists('file/' . $file_name)) {
 					$route_list = explode('-', $v['Route']);
 					$time_depart = strtotime($v['Time Depart']);
 					$time_arrive = strtotime($v['Time Arrive']);
-					$city_depart = $route_list[0];
-					$city_arrive = $route_list[1];
+					if ($konsorsium_choice == 10) {
+						$temp = explode('(', $route_list[0]);
+						$city_depart = trim($temp[0]);
+						$temp = explode('(', $route_list[1]);
+						$city_arrive = trim($temp[0]);
+					} else {
+						$city_depart = $route_list[0];
+						$city_arrive = $route_list[1];
+					}
 					$contact_list = explode('.', $v['Contact']);
 					$contact_title = strtoupper($contact_list[0]);
 					$contact_name = trim($contact_list[1]);
@@ -352,8 +360,8 @@ if (file_exists('file/' . $file_name)) {
 					$data['contact_title'] = $contact_title;
 					$data['contact_name'] = $contact_name;
 					$data['ticket_three_code'] = $ticket_three_code;
-					$ticket_number = (string) $v['Ticket Number'];
-					$ticket_number = ltrim($v['Ticket Number'], $ticket_three_code);
+					$ticket_number = ($konsorsium_choice == 10) ? (string) $v['NUM Code'] : (string) $v['Ticket Number'];
+					$ticket_number = ltrim($ticket_number, $ticket_three_code);
 					$ticket_number = substr($ticket_number, 0, 11);
 					if ( empty($ticket_number) || strtolower($ticket_number) == 'confirm' ) $ticket_number = $data['booking_code'];
 					if ($konsorsium_choice == 10) $ticket_number = $data['booking_code'];
